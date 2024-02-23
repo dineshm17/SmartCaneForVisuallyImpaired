@@ -1,0 +1,70 @@
+#include <SPI.h>
+#include <MFRC522.h>
+
+#define TRIG_PIN 7
+#define ECHO_PIN 6
+#define BUZZER_PIN 8
+#define LED_PIN 9
+
+MFRC522 mfrc522(SS_PIN, RST_PIN);  
+const int ledPin = LED_PIN;      
+const int buzzerPin = BUZZER_PIN; 
+
+
+long readDistance() {
+  long duration, distance;
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+  duration = pulseIn(ECHO_PIN, HIGH);
+  distance = duration * 0.034 / 2; 
+  return distance;
+}
+
+void setup() {
+  Serial.begin(9600);          
+  pinMode(TRIG_PIN, OUTPUT);    
+  pinMode(ECHO_PIN, INPUT);    
+  pinMode(ledPin, OUTPUT);     
+  pinMode(buzzerPin, OUTPUT);  
+
+  SPI.begin();               
+  mfrc522.PCD_Init();       
+  Serial.println("RFID initialization complete.");
+}
+
+void loop() {
+  long distance1 = readDistance(); 
+  
+
+  if (distance1 < 50) { 
+    digitalWrite(buzzerPin, HIGH); 
+    if (ledPin > 0) {
+      digitalWrite(ledPin, HIGH);  
+    }
+    delay(100); 
+    digitalWrite(buzzerPin, LOW);  
+    if (ledPin > 0) {
+      digitalWrite(ledPin, LOW);  
+    }
+  }
+
+  if (!mfrc522.PICC_IsNewCardPresent()) {
+    return;
+  }
+
+  if (!mfrc522.PICC_ReadCardSerial()) {
+    return;
+  }
+
+  Serial.print("UID:");
+  for (byte i = 0; i < 4; i++) {
+    Serial.print(mfrc522.uid.uidByte[i] < 0x10 ? "0" : "");
+    Serial.print(mfrc522.uid.uidByte[i], HEX);
+  }
+  Serial.println();
+
+  delay(1000);
+}
